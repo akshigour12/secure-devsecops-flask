@@ -148,7 +148,25 @@ pipeline {
                 }
             }
         }
+    stage('Verify Reports') {
+    steps {
+        sh '''
+            echo "========= REPORTS ========="
+            ls -lh
+            echo
+
+            test -f semgrep-report.json && echo "Semgrep OK"
+            test -f snyk-report.json && echo "Snyk OK"
+            test -f trivy-report.json && echo "Trivy OK"
+            test -f test-results.xml && echo "JUnit OK"
+        '''
     }
+}
+    
+    }
+
+    
+    
 
     post {
         always {
