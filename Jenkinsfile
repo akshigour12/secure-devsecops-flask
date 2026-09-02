@@ -15,23 +15,15 @@ pipeline {
             }
         }
 
-       stage('Install Dependencies') {
+    
+stage('Install Dependencies') {
     steps {
         sh '''
             python3 -m venv venv
             . venv/bin/activate
-
             python -m pip install --upgrade pip
             pip install -r requirements.txt
-            pip install semgrep
-
-            echo "Python: $(python --version)"
-            echo "Pytest: $(pytest --version)"
-            echo "Semgrep: $(semgrep --version)"
-            echo "Snyk: $(snyk --version)"
-            echo "SonarScanner: $(sonar-scanner --version | head -n 1)"
-            echo "Trivy: $(trivy --version | head -n 1)"
-            echo "Docker: $(docker --version)"
+            pip install pytest semgrep
         '''
     }
 }
