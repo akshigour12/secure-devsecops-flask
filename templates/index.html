@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure DevSecOps Flask App</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/">Secure DevSecOps</a>
+
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" href="/">Home</a>
+            <a class="nav-link" href="/about">About</a>
+            <a class="nav-link" href="/contact">Contact</a>
+            <a class="nav-link btn btn-success text-white px-3 ms-2" href="/login">Login</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-5">
+
+    <div class="text-center">
+        <h1>Secure DevSecOps Flask Application</h1>
+
+        <p class="lead">
+            Demonstrating a Secure CI/CD Pipeline using Jenkins, SonarQube,
+            Snyk, Trivy, OWASP ZAP, Docker and AWS EC2.
+        </p>
+
+        <a href="/login" class="btn btn-primary btn-lg">
+            Login
+        </a>
+
+    </div>
+
+</div>
+
+</body>
+</html>
