@@ -95,18 +95,27 @@ pipeline {
             }
         }
 
-        stage('Trivy Image Scan') {
-            steps {
-                sh '''
-                    /usr/local/bin/trivy image \
-                        --format json \
-                        --output ${TRIVY_REPORT} \
-                        --severity HIGH,CRITICAL \
-                        --exit-code 0 \
-                        ${IMAGE_NAME}:${IMAGE_TAG} || true
-                '''
-            }
-        }
+       stage('Trivy Image Scan') {
+    steps {
+        sh '''
+            /usr/local/bin/trivy image \
+                --format json \
+                --output trivy-report.json \
+                --severity HIGH,CRITICAL \
+                --exit-code 0 \
+                ${IMAGE_NAME}:${IMAGE_TAG}
+
+            echo "===== Workspace ====="
+            pwd
+
+            echo "===== Files ====="
+            ls -lah
+
+            echo "===== Trivy Report ====="
+            ls -lh trivy-report.json || true
+        '''
+    }
+}
 
         stage('Docker Push') {
             steps {
