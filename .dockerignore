@@ -1,0 +1,46 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.python-version
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment Files
+.env
+.env.*
+
+# Logs
+*.log
+
+# Test Reports
+htmlcov/
+.coverage
+coverage.xml
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Documentation
+README.md
+
+# Jenkins
+Jenkinsfile
