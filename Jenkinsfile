@@ -73,23 +73,19 @@ stage('Install Dependencies') {
             }
         }
 
+        
         stage('Snyk Dependency Scan') {
-            steps {
-                withCredentials([
-                    string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')
-                ]) {
-                    sh '''
-                        . venv/bin/activate
-
-                        snyk auth $SNYK_TOKEN
-
-                        snyk test \
-                          --file=requirements.txt \
-                          --skip-unresolved
-                    '''
-                }
-            }
+    steps {
+        withCredentials([
+            string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')
+        ]) {
+            sh '''
+                /usr/local/bin/snyk auth $SNYK_TOKEN
+                /usr/local/bin/snyk test --file=requirements.txt --skip-unresolved
+            '''
         }
+    }
+}
 
         stage('SonarQube Analysis') {
             steps {
