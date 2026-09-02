@@ -3,7 +3,9 @@ pipeline {
 
     environment {
         IMAGE_NAME = "akshigour12/secure-devsecops-flask"
-        IMAGE_TAG = "latest"
+        IMAGE_TAG  = "latest"
+        TRIVY_REPORT = "trivy-report.json"
+        SNYK_REPORT  = "snyk-report.json"
     }
 
     stages {
@@ -22,7 +24,7 @@ pipeline {
 
                     python -m pip install --upgrade pip
                     pip install -r requirements.txt
-                    pip install pytest semgrep
+                    pip install pytest pytest-junitxml semgrep
                 '''
             }
         }
@@ -31,7 +33,9 @@ pipeline {
             steps {
                 sh '''
                     . venv/bin/activate
-                    pytest -v || true
+
+                    pytest -v \
+                        --junitxml=test-results.xml || true
                 '''
             }
         }
@@ -67,7 +71,7 @@ pipeline {
 
                         /usr/local/bin/snyk test \
                             --file=requirements.txt \
-                            --severity-threshold=high || true
+                            --json-file-output=$SNYK_REPORT || true
                     '''
                 }
             }
@@ -95,6 +99,8 @@ pipeline {
             steps {
                 sh '''
                     /usr/local/bin/trivy image \
+                        --format json \
+                        --output $TRIVY_REPORT \
                         --severity HIGH,CRITICAL \
                         --exit-code 0 \
                         ${IMAGE_NAME}:${IMAGE_TAG}
@@ -113,8 +119,8 @@ pipeline {
                 ]) {
                     sh '''
                         echo "$DOCKER_PASS" | docker login \
-                          -u "$DOCKER_USER" \
-                          --password-stdin
+                            -u "$DOCKER_USER" \
+                            --password-stdin
 
                         docker push ${IMAGE_NAME}:${IMAGE_TAG}
                     '''
@@ -124,17 +130,29 @@ pipeline {
     }
 
     post {
+
         always {
-            archiveArtifacts artifacts: '*.json', allowEmptyArchive: true
+
+            junit allowEmptyResults: true,
+                  testResults: 'test-results.xml'
+
+            archiveArtifacts artifacts: '''
+                test-results.xml,
+                semgrep-report.json,
+                snyk-report.json,
+                trivy-report.json
+            ''',
+            allowEmptyArchive: true
+
             cleanWs()
         }
 
         success {
-            echo 'Pipeline completed successfully.'
+            echo "Pipeline completed successfully."
         }
 
         failure {
-            echo 'Pipeline failed.'
+            echo "Pipeline failed."
         }
     }
 }
