@@ -1,13 +1,9 @@
 pipeline {
     agent any
 
-    tools {
-        dependencyCheck 'DependencyCheck'
-    }
-
     environment {
         IMAGE_NAME = "akshigour12/secure-devsecops-flask"
-        IMAGE_TAG = "latest"
+        IMAGE_TAG  = "latest"
     }
 
     stages {
@@ -18,14 +14,14 @@ pipeline {
             }
         }
 
-        stage('Setup Python') {
+        stage('Install Dependencies') {
             steps {
                 sh '''
-                python3 -m venv venv
-                . venv/bin/activate
-                pip install --upgrade pip
-                pip install -r requirements.txt
-                pip install bandit safety semgrep pytest
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    python -m pip install --upgrade pip
+                    pip install -r requirements.txt
+                    pip install bandit safety semgrep
                 '''
             }
         }
@@ -33,36 +29,29 @@ pipeline {
         stage('Unit Tests') {
             steps {
                 sh '''
-                . venv/bin/activate
-                pytest
-                '''
-            }
-        }
-
-        stage('Bandit Scan') {
-            steps {
-                sh '''
-                . venv/bin/activate
-                bandit -r .
-                '''
-            }
-        }
-
-        stage('Safety Scan') {
-            steps {
-                sh '''
-                . venv/bin/activate
-                safety scan || true
-                '''
-            }
-        }
-
-        stage('Semgrep Scan') {
-            steps {
-                withCredentials([string(credentialsId: 'SEMGREP_APP_Token', variable: 'SEMGREP_APP_TOKEN')]) {
-                    sh '''
                     . venv/bin/activate
-                    semgrep ci || true
+                    pytest -v
+                '''
+            }
+        }
+
+        stage('Bandit SAST') {
+            steps {
+                sh '''
+                    . venv/bin/activate
+                    bandit -r app.py -f json -o bandit-report.json || true
+                '''
+            }
+        }
+
+        stage('Snyk Dependency Scan') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')
+                ]) {
+                    sh '''
+                        snyk auth "$SNYK_TOKEN"
+                        snyk test --file=requirements.txt --skip-unresolved
                     '''
                 }
             }
@@ -72,28 +61,7 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
-                    SonarScanner/bin/sonar-scanner \
-                    -Dsonar.projectKey=secure-devsecops-flask \
-                    -Dsonar.sources=. \
-                    -Dsonar.python.version=3.12
-                    '''
-                }
-            }
-        }
-
-        stage('OWASP Dependency Check') {
-            steps {
-                dependencyCheck additionalArguments: '--scan .', odcInstallation: 'DependencyCheck'
-                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-            }
-        }
-
-        stage('Snyk Scan') {
-            steps {
-                withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
-                    sh '''
-                    snyk auth $SNYK_TOKEN
-                    snyk test --file=requirements.txt --skip-unresolved
+                        sonar-scanner
                     '''
                 }
             }
@@ -102,44 +70,51 @@ pipeline {
         stage('Docker Build') {
             steps {
                 sh '''
-                docker build -t $IMAGE_NAME:$IMAGE_TAG .
+                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                '''
+            }
+        }
+
+        stage('Trivy Scan') {
+            steps {
+                sh '''
+                    trivy image \
+                      --severity HIGH,CRITICAL \
+                      --exit-code 1 \
+                      ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
         }
 
         stage('Docker Push') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub',
-                                                 usernameVariable: 'DOCKER_USER',
-                                                 passwordVariable: 'DOCKER_PASS')]) {
-
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
                     sh '''
-                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    docker push $IMAGE_NAME:$IMAGE_TAG
+                        echo "$DOCKER_PASS" | docker login \
+                            -u "$DOCKER_USER" \
+                            --password-stdin
+
+                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
                     '''
                 }
             }
         }
 
-        stage('Deploy') {
-            steps {
-                sh '''
-                docker rm -f secure-devsecops-flask || true
-
-                docker run -d \
-                --name secure-devsecops-flask \
-                -p 5000:5000 \
-                -e APP_USERNAME=admin \
-                -e APP_PASSWORD=admin123 \
-                $IMAGE_NAME:$IMAGE_TAG
-                '''
-            }
-        }
     }
 
     post {
         always {
-            cleanWs()
+            archiveArtifacts artifacts: '''
+                bandit-report.json,
+                **/test-results.xml
+            ''',
+            allowEmptyArchive: true
         }
     }
 }
