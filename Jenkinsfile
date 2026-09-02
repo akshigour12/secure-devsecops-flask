@@ -21,7 +21,7 @@ pipeline {
                     . venv/bin/activate
                     python -m pip install --upgrade pip
                     pip install -r requirements.txt
-                    pip install bandit safety semgrep
+                    pip install pytest semgrep
                 '''
             }
         }
@@ -35,22 +35,23 @@ pipeline {
             }
         }
 
-        stage('Bandit SAST') {
+        stage('Semgrep SAST') {
             steps {
-                sh '''
-                    . venv/bin/activate
-                    bandit -r app.py -f json -o bandit-report.json || true
-                '''
+                withCredentials([string(credentialsId: 'SEMGREP_APP_Token', variable: 'SEMGREP_APP_TOKEN')]) {
+                    sh '''
+                        . venv/bin/activate
+                        export SEMGREP_APP_TOKEN=$SEMGREP_APP_TOKEN
+                        semgrep ci
+                    '''
+                }
             }
         }
 
         stage('Snyk Dependency Scan') {
             steps {
-                withCredentials([
-                    string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')
-                ]) {
+                withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
                     sh '''
-                        snyk auth "$SNYK_TOKEN"
+                        snyk auth $SNYK_TOKEN
                         snyk test --file=requirements.txt --skip-unresolved
                     '''
                 }
@@ -60,9 +61,15 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    sh '''
-                        sonar-scanner
-                    '''
+                    withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+                        sh '''
+                            sonar-scanner \
+                              -Dsonar.projectKey=secure-devsecops-flask \
+                              -Dsonar.sources=. \
+                              -Dsonar.host.url=$SONAR_HOST_URL \
+                              -Dsonar.token=$SONAR_TOKEN
+                        '''
+                    }
                 }
             }
         }
@@ -75,32 +82,27 @@ pipeline {
             }
         }
 
-        stage('Trivy Scan') {
+        stage('Trivy Image Scan') {
             steps {
                 sh '''
-                    trivy image \
-                      --severity HIGH,CRITICAL \
-                      --exit-code 1 \
-                      ${IMAGE_NAME}:${IMAGE_TAG}
+                    trivy image --severity HIGH,CRITICAL --exit-code 1 ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
         }
 
         stage('Docker Push') {
             steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )
-                ]) {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
                     sh '''
-                        echo "$DOCKER_PASS" | docker login \
-                            -u "$DOCKER_USER" \
-                            --password-stdin
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
-                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                        docker tag ${IMAGE_NAME}:${IMAGE_TAG} $DOCKER_USER/secure-devsecops-flask:${IMAGE_TAG}
+
+                        docker push $DOCKER_USER/secure-devsecops-flask:${IMAGE_TAG}
                     '''
                 }
             }
@@ -110,11 +112,15 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: '''
-                bandit-report.json,
-                **/test-results.xml
-            ''',
-            allowEmptyArchive: true
+            cleanWs()
+        }
+
+        success {
+            echo 'Pipeline completed successfully.'
+        }
+
+        failure {
+            echo 'Pipeline failed.'
         }
     }
 }
