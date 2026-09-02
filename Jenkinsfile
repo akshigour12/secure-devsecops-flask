@@ -1,10 +1,13 @@
 pipeline {
     agent any
 
+    tools {
+        sonarQubeScanner 'SonarScanner'
+    }
+
     environment {
         IMAGE_NAME = "akshigour12/secure-devsecops-flask"
         IMAGE_TAG  = "latest"
-        SCANNER_HOME = tool 'SonarScanner'
     }
 
     stages {
@@ -15,27 +18,26 @@ pipeline {
             }
         }
 
-    
-stage('Install Dependencies') {
-    steps {
-        sh '''
-            python3 -m venv venv
-            . venv/bin/activate
-            python -m pip install --upgrade pip
-            pip install -r requirements.txt
-            pip install pytest semgrep
-        '''
-    }
-}
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                    python3 -m venv venv
+                    . venv/bin/activate
+
+                    python -m pip install --upgrade pip
+                    pip install -r requirements.txt
+                    pip install pytest semgrep
+                '''
+            }
+        }
 
         stage('Workspace Debug') {
             steps {
                 sh '''
-                    echo "===== Current Directory ====="
+                    echo "===== Workspace ====="
                     pwd
-
-                    echo "===== Repository Files ====="
-                    ls -R
+                    ls -la
+                    find . -maxdepth 2 -type f
                 '''
             }
         }
@@ -46,9 +48,9 @@ stage('Install Dependencies') {
                     . venv/bin/activate
 
                     if [ -d tests ]; then
-                        pytest -v tests
+                        pytest tests -v
                     else
-                        echo "No tests directory found."
+                        echo "No tests directory found. Skipping tests."
                     fi
                 '''
             }
@@ -65,27 +67,29 @@ stage('Install Dependencies') {
                         export SEMGREP_APP_TOKEN=$SEMGREP_APP_TOKEN
 
                         semgrep scan \
-                          --config auto \
-                          --json \
-                          --output semgrep-report.json || true
+                            --config auto \
+                            --json \
+                            --output semgrep-report.json || true
                     '''
                 }
             }
         }
 
-        
         stage('Snyk Dependency Scan') {
-    steps {
-        withCredentials([
-            string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')
-        ]) {
-            sh '''
-                /usr/local/bin/snyk auth $SNYK_TOKEN
-                /usr/local/bin/snyk test --file=requirements.txt --skip-unresolved
-            '''
+            steps {
+                withCredentials([
+                    string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')
+                ]) {
+                    sh '''
+                        /usr/local/bin/snyk auth $SNYK_TOKEN
+
+                        /usr/local/bin/snyk test \
+                            --file=requirements.txt \
+                            --skip-unresolved
+                    '''
+                }
+            }
         }
-    }
-}
 
         stage('SonarQube Analysis') {
             steps {
@@ -93,7 +97,12 @@ stage('Install Dependencies') {
                     sh '''
                         . venv/bin/activate
 
-                        ${SCANNER_HOME}/bin/sonar-scanner
+                        sonar-scanner \
+                          -Dsonar.projectKey=secure-devsecops-flask \
+                          -Dsonar.sources=. \
+                          -Dsonar.python.version=3 \
+                          -Dsonar.host.url=$SONAR_HOST_URL \
+                          -Dsonar.token=$SONAR_AUTH_TOKEN
                     '''
                 }
             }
@@ -102,8 +111,7 @@ stage('Install Dependencies') {
         stage('Docker Build') {
             steps {
                 sh '''
-                    docker build \
-                      -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
                 '''
             }
         }
@@ -111,7 +119,7 @@ stage('Install Dependencies') {
         stage('Trivy Image Scan') {
             steps {
                 sh '''
-                    trivy image \
+                    /usr/local/bin/trivy image \
                       --severity HIGH,CRITICAL \
                       --exit-code 1 \
                       ${IMAGE_NAME}:${IMAGE_TAG}
@@ -130,10 +138,12 @@ stage('Install Dependencies') {
                 ]) {
                     sh '''
                         echo "$DOCKER_PASS" | docker login \
-                          -u "$DOCKER_USER" \
-                          --password-stdin
+                            -u "$DOCKER_USER" \
+                            --password-stdin
 
                         docker push ${IMAGE_NAME}:${IMAGE_TAG}
+
+                        docker logout
                     '''
                 }
             }
