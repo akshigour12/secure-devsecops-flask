@@ -3,9 +3,10 @@ pipeline {
 
     environment {
         IMAGE_NAME = "akshigour12/secure-devsecops-flask"
-        IMAGE_TAG  = "latest"
+        IMAGE_TAG = "latest"
+
         TRIVY_REPORT = "trivy-report.json"
-        SNYK_REPORT  = "snyk-report.json"
+        SNYK_REPORT = "snyk-report.json"
     }
 
     stages {
@@ -24,7 +25,7 @@ pipeline {
 
                     python -m pip install --upgrade pip
                     pip install -r requirements.txt
-                    pip install pytest pytest-junitxml semgrep
+                    pip install pytest semgrep
                 '''
             }
         }
@@ -35,7 +36,7 @@ pipeline {
                     . venv/bin/activate
 
                     pytest -v \
-                        --junitxml=test-results.xml || true
+                    --junitxml=test-results.xml || true
                 '''
             }
         }
@@ -148,11 +149,11 @@ pipeline {
         }
 
         success {
-            echo "Pipeline completed successfully."
+            echo 'Pipeline completed successfully.'
         }
 
         failure {
-            echo "Pipeline failed."
+            echo 'Pipeline failed.'
         }
     }
 }
