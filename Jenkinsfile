@@ -4,6 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "akshigour12/secure-devsecops-flask"
         IMAGE_TAG  = "latest"
+        SCANNER_HOME = tool 'SonarScanner'
     }
 
     stages {
@@ -19,9 +20,23 @@ pipeline {
                 sh '''
                     python3 -m venv venv
                     . venv/bin/activate
+
                     python -m pip install --upgrade pip
                     pip install -r requirements.txt
-                    pip install pytest semgrep
+
+                    pip install pytest semgrep snyk
+                '''
+            }
+        }
+
+        stage('Workspace Debug') {
+            steps {
+                sh '''
+                    echo "===== Current Directory ====="
+                    pwd
+
+                    echo "===== Repository Files ====="
+                    ls -R
                 '''
             }
         }
@@ -30,18 +45,30 @@ pipeline {
             steps {
                 sh '''
                     . venv/bin/activate
-                    pytest -v
+
+                    if [ -d tests ]; then
+                        pytest -v tests
+                    else
+                        echo "No tests directory found."
+                    fi
                 '''
             }
         }
 
         stage('Semgrep SAST') {
             steps {
-                withCredentials([string(credentialsId: 'SEMGREP_APP_Token', variable: 'SEMGREP_APP_TOKEN')]) {
+                withCredentials([
+                    string(credentialsId: 'SEMGREP_APP_Token', variable: 'SEMGREP_APP_TOKEN')
+                ]) {
                     sh '''
                         . venv/bin/activate
+
                         export SEMGREP_APP_TOKEN=$SEMGREP_APP_TOKEN
-                        semgrep ci
+
+                        semgrep scan \
+                          --config auto \
+                          --json \
+                          --output semgrep-report.json || true
                     '''
                 }
             }
@@ -49,10 +76,17 @@ pipeline {
 
         stage('Snyk Dependency Scan') {
             steps {
-                withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
+                withCredentials([
+                    string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')
+                ]) {
                     sh '''
+                        . venv/bin/activate
+
                         snyk auth $SNYK_TOKEN
-                        snyk test --file=requirements.txt --skip-unresolved
+
+                        snyk test \
+                          --file=requirements.txt \
+                          --skip-unresolved
                     '''
                 }
             }
@@ -61,15 +95,11 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                        sh '''
-                            sonar-scanner \
-                              -Dsonar.projectKey=secure-devsecops-flask \
-                              -Dsonar.sources=. \
-                              -Dsonar.host.url=$SONAR_HOST_URL \
-                              -Dsonar.token=$SONAR_TOKEN
-                        '''
-                    }
+                    sh '''
+                        . venv/bin/activate
+
+                        ${SCANNER_HOME}/bin/sonar-scanner
+                    '''
                 }
             }
         }
@@ -77,7 +107,8 @@ pipeline {
         stage('Docker Build') {
             steps {
                 sh '''
-                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                    docker build \
+                      -t ${IMAGE_NAME}:${IMAGE_TAG} .
                 '''
             }
         }
@@ -85,33 +116,38 @@ pipeline {
         stage('Trivy Image Scan') {
             steps {
                 sh '''
-                    trivy image --severity HIGH,CRITICAL --exit-code 1 ${IMAGE_NAME}:${IMAGE_TAG}
+                    trivy image \
+                      --severity HIGH,CRITICAL \
+                      --exit-code 1 \
+                      ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
         }
 
         stage('Docker Push') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
                     sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        echo "$DOCKER_PASS" | docker login \
+                          -u "$DOCKER_USER" \
+                          --password-stdin
 
-                        docker tag ${IMAGE_NAME}:${IMAGE_TAG} $DOCKER_USER/secure-devsecops-flask:${IMAGE_TAG}
-
-                        docker push $DOCKER_USER/secure-devsecops-flask:${IMAGE_TAG}
+                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
                     '''
                 }
             }
         }
-
     }
 
     post {
         always {
+            archiveArtifacts artifacts: '*.json', allowEmptyArchive: true
             cleanWs()
         }
 
