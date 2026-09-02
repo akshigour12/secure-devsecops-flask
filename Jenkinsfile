@@ -5,12 +5,9 @@ pipeline {
         IMAGE_NAME = "akshigour12/secure-devsecops-flask"
         IMAGE_TAG = "latest"
 
-        TRIVY_REPORT = "trivy-report.json"
+        SEMGREP_REPORT = "semgrep-report.json"
         SNYK_REPORT = "snyk-report.json"
-
-        SONAR_SCANNER = "/var/lib/jenkins/tools/hudson.plugins.sonar.SonarRunnerInstallation/SonarScanner/bin/sonar-scanner"
-        SNYK = "/usr/local/bin/snyk"
-        TRIVY = "/usr/local/bin/trivy"
+        TRIVY_REPORT = "trivy-report.json"
     }
 
     stages {
@@ -39,18 +36,8 @@ pipeline {
                 sh '''
                     . venv/bin/activate
 
-                    export PYTHONPATH=$WORKSPACE
-
-                    echo "Current directory:"
-                    pwd
-
-                    ls -la
-
-                    python -c "import app; print('Flask app import successful')"
-
-                    pytest tests \
-                        -v \
-                        --junitxml=test-results.xml || true
+                    pytest \
+                      --junitxml=test-results.xml || true
                 '''
             }
         }
@@ -59,19 +46,19 @@ pipeline {
             steps {
                 withCredentials([
                     string(credentialsId: 'SEMGREP_APP_Token',
-                           variable: 'SEMGREP_APP_TOKEN')
+                    variable: 'SEMGREP_APP_TOKEN')
                 ]) {
                     sh '''
                         . venv/bin/activate
 
                         export SEMGREP_APP_TOKEN=$SEMGREP_APP_TOKEN
 
+                        semgrep login || true
+
                         semgrep scan \
                             --config auto \
                             --json \
-                            --output semgrep-report.json || true
-
-                        ls -l semgrep-report.json || true
+                            --output $SEMGREP_REPORT || true
                     '''
                 }
             }
@@ -81,16 +68,14 @@ pipeline {
             steps {
                 withCredentials([
                     string(credentialsId: 'snyk-token',
-                           variable: 'SNYK_TOKEN')
+                    variable: 'SNYK_TOKEN')
                 ]) {
                     sh '''
-                        $SNYK auth $SNYK_TOKEN || true
+                        /usr/local/bin/snyk auth $SNYK_TOKEN || true
 
-                        $SNYK test \
+                        /usr/local/bin/snyk test \
                             --file=requirements.txt \
-                            --json-file-output=$SNYK_REPORT || true
-
-                        ls -l $SNYK_REPORT || true
+                            --json > $SNYK_REPORT || true
                     '''
                 }
             }
@@ -100,7 +85,7 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
-                        $SONAR_SCANNER || true
+                        /var/lib/jenkins/tools/hudson.plugins.sonar.SonarRunnerInstallation/SonarScanner/bin/sonar-scanner
                     '''
                 }
             }
@@ -109,7 +94,8 @@ pipeline {
         stage('Docker Build') {
             steps {
                 sh '''
-                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                    docker build \
+                        -t ${IMAGE_NAME}:${IMAGE_TAG} .
                 '''
             }
         }
@@ -117,14 +103,12 @@ pipeline {
         stage('Trivy Image Scan') {
             steps {
                 sh '''
-                    $TRIVY image \
+                    /usr/local/bin/trivy image \
                         --format json \
                         --output $TRIVY_REPORT \
                         --severity HIGH,CRITICAL \
                         --exit-code 0 \
                         ${IMAGE_NAME}:${IMAGE_TAG} || true
-
-                    ls -l $TRIVY_REPORT || true
                 '''
             }
         }
@@ -148,46 +132,45 @@ pipeline {
                 }
             }
         }
-    stage('Verify Reports') {
-    steps {
-        sh '''
-            echo "========= REPORTS ========="
-            ls -lh
-            echo
 
-            test -f semgrep-report.json && echo "Semgrep OK"
-            test -f snyk-report.json && echo "Snyk OK"
-            test -f trivy-report.json && echo "Trivy OK"
-            test -f test-results.xml && echo "JUnit OK"
-        '''
-    }
-}
-    
-    }
+        stage('Verify Reports') {
+            steps {
+                sh '''
+                    echo "===== Generated Reports ====="
 
-    
-    
+                    ls -lh
+
+                    echo
+
+                    [ -f test-results.xml ] && echo "✓ test-results.xml"
+                    [ -f semgrep-report.json ] && echo "✓ semgrep-report.json"
+                    [ -f snyk-report.json ] && echo "✓ snyk-report.json"
+                    [ -f trivy-report.json ] && echo "✓ trivy-report.json"
+                '''
+            }
+        }
+    }
 
     post {
+
         always {
 
             junit allowEmptyResults: true,
                   testResults: 'test-results.xml'
 
-            archiveArtifacts(
-                artifacts: 'test-results.xml,semgrep-report.json,snyk-report.json,trivy-report.json',
-                allowEmptyArchive: true
-            )
+            archiveArtifacts artifacts: '''
+test-results.xml,
+semgrep-report.json,
+snyk-report.json,
+trivy-report.json
+''',
+            allowEmptyArchive: true
 
             cleanWs()
         }
 
         success {
             echo 'Pipeline completed successfully.'
-        }
-
-        unstable {
-            echo 'Pipeline completed with warnings.'
         }
 
         failure {
