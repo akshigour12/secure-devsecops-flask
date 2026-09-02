@@ -7,6 +7,10 @@ pipeline {
 
         TRIVY_REPORT = "trivy-report.json"
         SNYK_REPORT = "snyk-report.json"
+
+        SONAR_SCANNER = "/var/lib/jenkins/tools/hudson.plugins.sonar.SonarRunnerInstallation/SonarScanner/bin/sonar-scanner"
+        SNYK = "/usr/local/bin/snyk"
+        TRIVY = "/usr/local/bin/trivy"
     }
 
     stages {
@@ -35,9 +39,18 @@ pipeline {
                 sh '''
                     . venv/bin/activate
 
-                    pytest \
-                        --junitxml=test-results.xml \
-                        -v || true
+                    export PYTHONPATH=$WORKSPACE
+
+                    echo "Current directory:"
+                    pwd
+
+                    ls -la
+
+                    python -c "import app; print('Flask app import successful')"
+
+                    pytest tests \
+                        -v \
+                        --junitxml=test-results.xml || true
                 '''
             }
         }
@@ -45,7 +58,8 @@ pipeline {
         stage('Semgrep SAST') {
             steps {
                 withCredentials([
-                    string(credentialsId: 'SEMGREP_APP_Token', variable: 'SEMGREP_APP_TOKEN')
+                    string(credentialsId: 'SEMGREP_APP_Token',
+                           variable: 'SEMGREP_APP_TOKEN')
                 ]) {
                     sh '''
                         . venv/bin/activate
@@ -56,6 +70,8 @@ pipeline {
                             --config auto \
                             --json \
                             --output semgrep-report.json || true
+
+                        ls -l semgrep-report.json || true
                     '''
                 }
             }
@@ -64,14 +80,17 @@ pipeline {
         stage('Snyk Dependency Scan') {
             steps {
                 withCredentials([
-                    string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')
+                    string(credentialsId: 'snyk-token',
+                           variable: 'SNYK_TOKEN')
                 ]) {
                     sh '''
-                        /usr/local/bin/snyk auth $SNYK_TOKEN || true
+                        $SNYK auth $SNYK_TOKEN || true
 
-                        /usr/local/bin/snyk test \
+                        $SNYK test \
                             --file=requirements.txt \
                             --json-file-output=$SNYK_REPORT || true
+
+                        ls -l $SNYK_REPORT || true
                     '''
                 }
             }
@@ -81,7 +100,7 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
-                        /var/lib/jenkins/tools/hudson.plugins.sonar.SonarRunnerInstallation/SonarScanner/bin/sonar-scanner || true
+                        $SONAR_SCANNER || true
                     '''
                 }
             }
@@ -98,12 +117,14 @@ pipeline {
         stage('Trivy Image Scan') {
             steps {
                 sh '''
-                    /usr/local/bin/trivy image \
+                    $TRIVY image \
                         --format json \
                         --output $TRIVY_REPORT \
                         --severity HIGH,CRITICAL \
                         --exit-code 0 \
                         ${IMAGE_NAME}:${IMAGE_TAG} || true
+
+                    ls -l $TRIVY_REPORT || true
                 '''
             }
         }
@@ -135,19 +156,20 @@ pipeline {
             junit allowEmptyResults: true,
                   testResults: 'test-results.xml'
 
-            archiveArtifacts artifacts: '''
-test-results.xml,
-semgrep-report.json,
-snyk-report.json,
-trivy-report.json
-''',
-            allowEmptyArchive: true
+            archiveArtifacts(
+                artifacts: 'test-results.xml,semgrep-report.json,snyk-report.json,trivy-report.json',
+                allowEmptyArchive: true
+            )
 
             cleanWs()
         }
 
         success {
             echo 'Pipeline completed successfully.'
+        }
+
+        unstable {
+            echo 'Pipeline completed with warnings.'
         }
 
         failure {
