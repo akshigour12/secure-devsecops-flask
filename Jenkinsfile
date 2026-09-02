@@ -15,19 +15,26 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
-            steps {
-                sh '''
-                    python3 -m venv venv
-                    . venv/bin/activate
+       stage('Install Dependencies') {
+    steps {
+        sh '''
+            python3 -m venv venv
+            . venv/bin/activate
 
-                    python -m pip install --upgrade pip
-                    pip install -r requirements.txt
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt
+            pip install semgrep
 
-                    pip install pytest semgrep snyk
-                '''
-            }
-        }
+            echo "Python: $(python --version)"
+            echo "Pytest: $(pytest --version)"
+            echo "Semgrep: $(semgrep --version)"
+            echo "Snyk: $(snyk --version)"
+            echo "SonarScanner: $(sonar-scanner --version | head -n 1)"
+            echo "Trivy: $(trivy --version | head -n 1)"
+            echo "Docker: $(docker --version)"
+        '''
+    }
+}
 
         stage('Workspace Debug') {
             steps {
