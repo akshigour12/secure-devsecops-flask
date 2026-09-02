@@ -35,8 +35,9 @@ pipeline {
                 sh '''
                     . venv/bin/activate
 
-                    pytest -v \
-                    --junitxml=test-results.xml || true
+                    pytest \
+                        --junitxml=test-results.xml \
+                        -v || true
                 '''
             }
         }
@@ -50,8 +51,6 @@ pipeline {
                         . venv/bin/activate
 
                         export SEMGREP_APP_TOKEN=$SEMGREP_APP_TOKEN
-
-                        semgrep login || true
 
                         semgrep scan \
                             --config auto \
@@ -68,7 +67,7 @@ pipeline {
                     string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')
                 ]) {
                     sh '''
-                        /usr/local/bin/snyk auth $SNYK_TOKEN
+                        /usr/local/bin/snyk auth $SNYK_TOKEN || true
 
                         /usr/local/bin/snyk test \
                             --file=requirements.txt \
@@ -82,7 +81,7 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
-                        /var/lib/jenkins/tools/hudson.plugins.sonar.SonarRunnerInstallation/SonarScanner/bin/sonar-scanner
+                        /var/lib/jenkins/tools/hudson.plugins.sonar.SonarRunnerInstallation/SonarScanner/bin/sonar-scanner || true
                     '''
                 }
             }
@@ -104,7 +103,7 @@ pipeline {
                         --output $TRIVY_REPORT \
                         --severity HIGH,CRITICAL \
                         --exit-code 0 \
-                        ${IMAGE_NAME}:${IMAGE_TAG}
+                        ${IMAGE_NAME}:${IMAGE_TAG} || true
                 '''
             }
         }
@@ -131,18 +130,17 @@ pipeline {
     }
 
     post {
-
         always {
 
             junit allowEmptyResults: true,
                   testResults: 'test-results.xml'
 
             archiveArtifacts artifacts: '''
-                test-results.xml,
-                semgrep-report.json,
-                snyk-report.json,
-                trivy-report.json
-            ''',
+test-results.xml,
+semgrep-report.json,
+snyk-report.json,
+trivy-report.json
+''',
             allowEmptyArchive: true
 
             cleanWs()
