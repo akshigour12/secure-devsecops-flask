@@ -3,11 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = "akshigour12/secure-devsecops-flask"
-        IMAGE_TAG  = "latest"
-
-        TRIVY_REPORT   = "trivy-report.json"
-        SNYK_REPORT    = "snyk-report.json"
-        SEMGREP_REPORT = "semgrep-report.json"
+        IMAGE_TAG = "latest"
     }
 
     stages {
@@ -26,7 +22,7 @@ pipeline {
 
                     python -m pip install --upgrade pip
                     pip install -r requirements.txt
-                    pip install pytest semgrep
+                    pip install semgrep
                 '''
             }
         }
@@ -37,7 +33,9 @@ pipeline {
                     . venv/bin/activate
 
                     python -m pytest -v \
-                    --junitxml=test-results.xml || true
+                        --junitxml=test-results.xml || true
+
+                    ls -lh test-results.xml || true
                 '''
             }
         }
@@ -52,10 +50,14 @@ pipeline {
 
                         export SEMGREP_APP_TOKEN=$SEMGREP_APP_TOKEN
 
+                        semgrep login || true
+
                         semgrep scan \
-                          --config auto \
-                          --json \
-                          --output ${SEMGREP_REPORT} || true
+                            --config auto \
+                            --json \
+                            --output semgrep-report.json || true
+
+                        ls -lh semgrep-report.json || true
                     '''
                 }
             }
@@ -67,11 +69,15 @@ pipeline {
                     string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')
                 ]) {
                     sh '''
-                        /usr/local/bin/snyk auth $SNYK_TOKEN || true
+                        . venv/bin/activate
+
+                        /usr/local/bin/snyk auth $SNYK_TOKEN
 
                         /usr/local/bin/snyk test \
-                          --file=requirements.txt \
-                          --json-file-output=${SNYK_REPORT} || true
+                            --command=python3 \
+                            --json-file-output=snyk-report.json || true
+
+                        ls -lh snyk-report.json || true
                     '''
                 }
             }
@@ -81,7 +87,7 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
-                        /var/lib/jenkins/tools/hudson.plugins.sonar.SonarRunnerInstallation/SonarScanner/bin/sonar-scanner || true
+                        /var/lib/jenkins/tools/hudson.plugins.sonar.SonarRunnerInstallation/SonarScanner/bin/sonar-scanner
                     '''
                 }
             }
@@ -95,27 +101,20 @@ pipeline {
             }
         }
 
-       stage('Trivy Image Scan') {
-    steps {
-        sh '''
-            /usr/local/bin/trivy image \
-                --format json \
-                --output trivy-report.json \
-                --severity HIGH,CRITICAL \
-                --exit-code 0 \
-                ${IMAGE_NAME}:${IMAGE_TAG}
+        stage('Trivy Image Scan') {
+            steps {
+                sh '''
+                    /usr/local/bin/trivy image \
+                        --format json \
+                        --output trivy-report.json \
+                        --severity HIGH,CRITICAL \
+                        --exit-code 0 \
+                        ${IMAGE_NAME}:${IMAGE_TAG}
 
-            echo "===== Workspace ====="
-            pwd
-
-            echo "===== Files ====="
-            ls -lah
-
-            echo "===== Trivy Report ====="
-            ls -lh trivy-report.json || true
-        '''
-    }
-}
+                    ls -lh trivy-report.json || true
+                '''
+            }
+        }
 
         stage('Docker Push') {
             steps {
@@ -128,8 +127,8 @@ pipeline {
                 ]) {
                     sh '''
                         echo "$DOCKER_PASS" | docker login \
-                          -u "$DOCKER_USER" \
-                          --password-stdin
+                            -u "$DOCKER_USER" \
+                            --password-stdin
 
                         docker push ${IMAGE_NAME}:${IMAGE_TAG}
                     '''
@@ -141,30 +140,22 @@ pipeline {
     post {
         always {
 
-            junit(
-                testResults: 'test-results.xml',
-                allowEmptyResults: true
-            )
+            junit allowEmptyResults: true,
+                  testResults: 'test-results.xml'
 
-            archiveArtifacts(
-                artifacts: '''
-                    test-results.xml,
-                    semgrep-report.json,
-                    snyk-report.json,
-                    trivy-report.json
-                ''',
-                allowEmptyArchive: true
-            )
+            archiveArtifacts artifacts: '''
+                test-results.xml,
+                semgrep-report.json,
+                snyk-report.json,
+                trivy-report.json
+            ''',
+            allowEmptyArchive: true
 
             cleanWs()
         }
 
         success {
             echo 'Pipeline completed successfully.'
-        }
-
-        unstable {
-            echo 'Pipeline completed with warnings.'
         }
 
         failure {
