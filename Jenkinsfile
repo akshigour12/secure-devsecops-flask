@@ -13,19 +13,18 @@ pipeline {
                 checkout scm
             }
         }
+stage('Install Dependencies') {
+    steps {
+        sh '''
+            python -m pip install --upgrade pip
 
-        stage('Install Dependencies') {
-            steps {
-                sh '''
-                    python3 -m venv venv
-                    . venv/bin/activate
+            python -m pip install -r requirements.txt
 
-                    python -m pip install --upgrade pip
-                    pip install -r requirements.txt
-                    pip install semgrep
-                '''
-            }
-        }
+            python -m pip install semgrep
+        '''
+    }
+}
+      
 
        stage('Unit Tests') {
     steps {
