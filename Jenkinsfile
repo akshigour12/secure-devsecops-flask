@@ -27,16 +27,15 @@ pipeline {
             }
         }
 
-        stage('Unit Tests') {
-            steps {
-                sh '''
-                    . venv/bin/activate
-
-                    pytest -v \
-                        --junitxml=test-results.xml || true
-                '''
-            }
-        }
+       stage('Unit Tests') {
+    steps {
+        sh '''
+            python -m pytest \
+                -v \
+                --junitxml=test-results.xml
+        '''
+    }
+}
 
         stage('Semgrep SAST') {
             steps {
