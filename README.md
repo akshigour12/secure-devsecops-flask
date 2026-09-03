@@ -1,228 +1,516 @@
-# 🔐 Secure DevSecOps Flask Application
+# 🔐 Secure DevSecOps CI/CD Pipeline for Flask Application
 
-> A production-inspired Secure DevSecOps CI/CD Pipeline built using Flask, Jenkins, Docker, SonarQube, Snyk, Semgrep, Trivy and Docker Hub.
+<p align="center">
 
-![Python](https://img.shields.io/badge/Python-3.12-blue)
-![Flask](https://img.shields.io/badge/Flask-3.1-black)
-![Docker](https://img.shields.io/badge/Docker-Containerized-blue)
-![Jenkins](https://img.shields.io/badge/Jenkins-CI%2FCD-red)
-![SonarQube](https://img.shields.io/badge/SonarQube-Code%20Quality-orange)
-![Snyk](https://img.shields.io/badge/Snyk-Security-purple)
+![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)
+![Flask](https://img.shields.io/badge/Flask-3.1-black?logo=flask)
+![Jenkins](https://img.shields.io/badge/Jenkins-CI/CD-red?logo=jenkins)
+![Docker](https://img.shields.io/badge/Docker-Container-blue?logo=docker)
+![SonarQube](https://img.shields.io/badge/SonarQube-Code%20Quality-orange?logo=sonarqube)
+![Semgrep](https://img.shields.io/badge/Semgrep-SAST-success)
+![Snyk](https://img.shields.io/badge/Snyk-Dependency%20Security-purple?logo=snyk)
 ![Trivy](https://img.shields.io/badge/Trivy-Container%20Security-green)
-![License](https://img.shields.io/badge/License-MIT-lightgrey)
+![GitHub](https://img.shields.io/badge/GitHub-Security-black?logo=github)
+
+</p>
 
 ---
 
-# 📌 Project Overview
+# 📖 Overview
 
-This project demonstrates a **Secure DevSecOps CI/CD Pipeline** for a Flask web application.
+This project demonstrates the implementation of a **Secure DevSecOps CI/CD Pipeline** for a Flask web application using industry-standard DevOps and Security tools.
 
-The pipeline automates:
+The primary objective of this project is to integrate **security into every stage of the Software Development Life Cycle (SDLC)** by automating testing, code quality analysis, security scanning, containerization, and deployment.
 
-- Source Code Checkout
-- Dependency Installation
-- Unit Testing
-- Static Application Security Testing (SAST)
-- Dependency Vulnerability Scanning
-- Code Quality Analysis
-- Docker Image Build
-- Container Image Security Scanning
-- Docker Image Publishing
-
-The goal is to integrate security at every stage of the Software Development Lifecycle (SDLC).
+Unlike a traditional CI/CD pipeline, this project follows **DevSecOps principles** by incorporating multiple security controls from source code management to container image publishing.
 
 ---
 
-# 🚀 Features
+# 🎯 Project Objectives
 
-- Flask Web Application
-- Dockerized Deployment
+- Build a secure Flask web application
+- Automate software delivery using Jenkins
+- Implement Git security best practices
+- Perform automated unit testing
+- Integrate static code analysis
+- Scan dependencies for known vulnerabilities
+- Scan Docker images for security issues
+- Publish Docker images automatically
+- Generate security reports
+- Send automated pipeline notifications
+
+---
+
+# ✨ Key Features
+
+## 🔐 Git Security
+
+- Feature Branch Workflow
+- Branch Protection Rules
+- CODEOWNERS Configuration
+- Pull Request Based Development
+- Pre-commit Hooks
+- GitHub Webhook Integration
+
+---
+
+## ⚙️ CI/CD Automation
+
 - Jenkins Declarative Pipeline
-- Automated Unit Testing using Pytest
-- Static Code Analysis using SonarQube
-- SAST using Semgrep
-- Dependency Security using Snyk
-- Container Vulnerability Scanning using Trivy
-- HTML & JSON Security Reports
-- Email Notifications after Pipeline Execution
-- Non-root Docker Container
-- Production-ready deployment using Gunicorn
+- Automatic Pipeline Trigger
+- HTML Report Publishing
+- Artifact Archiving
+- Email Notifications
 
 ---
 
-# 🏗 Architecture
+## 🛡 DevSecOps
 
-```
-                GitHub Repository
-                       │
-                       ▼
-                  Jenkins Pipeline
-                       │
-     ┌─────────────────┼─────────────────┐
-     │                 │                 │
-     ▼                 ▼                 ▼
-  Pytest          SonarQube          Semgrep
-     │                 │                 │
-     └─────────────────┼─────────────────┘
-                       ▼
-                     Snyk
-                       │
-                       ▼
-                 Docker Build
-                       │
-                       ▼
-                  Trivy Scan
-                       │
-                       ▼
-                 Docker Hub Push
-```
+- Pytest Unit Testing
+- SonarQube Code Quality Analysis
+- SonarQube Quality Gate
+- Semgrep SAST
+- Snyk Dependency Scan
+- Trivy Container Security Scan
 
 ---
 
-# ⚙️ Tech Stack
+## 🐳 Containerization
+
+- Dockerized Flask Application
+- Python Slim Base Image
+- Non-root Docker User
+- Health Check
+- Gunicorn Production Server
+- Docker Hub Image Publishing
+
+---
+
+# 🛠 Tech Stack
 
 | Category | Technology |
-|----------|------------|
-| Backend | Flask |
-| Language | Python |
-| Testing | Pytest |
+|------------|------------|
+| Programming Language | Python 3.12 |
+| Backend Framework | Flask |
+| Version Control | Git |
+| Repository Hosting | GitHub |
 | CI/CD | Jenkins |
 | Code Quality | SonarQube |
-| SAST | Semgrep |
-| Dependency Scan | Snyk |
+| Static Application Security Testing | Semgrep |
+| Dependency Security | Snyk |
 | Container Security | Trivy |
 | Containerization | Docker |
-| Deployment | Gunicorn |
+| Container Registry | Docker Hub |
+| Web Server | Gunicorn |
+| Webhook Connectivity | Cloudflare Tunnel |
 
 ---
 
-# 📂 Project Structure
+# 🏗 High-Level Architecture
 
+```text
+                    Developer
+                         │
+                         ▼
+                GitHub Repository
+                         │
+       ┌────────────────────────────────┐
+       │ Git Security Controls          │
+       │ • Branch Protection            │
+       │ • CODEOWNERS                   │
+       │ • Pre-commit Hooks             │
+       │ • Pull Requests                │
+       └────────────────────────────────┘
+                         │
+                         ▼
+                GitHub Webhook
+                         │
+                         ▼
+               Cloudflare Tunnel
+                         │
+                         ▼
+              Jenkins (Localhost)
+                         │
+         ┌───────────────┼────────────────┐
+         │               │                │
+         ▼               ▼                ▼
+      Testing        Security        Container
 ```
+
+---
+
+# 🔐 Git Security Workflow
+
+This project follows secure Git collaboration practices to protect the source code before it reaches the CI/CD pipeline.
+
+```text
+Developer
+
+    │
+
+Feature Branch
+
+    │
+
+Pre-commit Hooks
+
+    │
+
+Git Push
+
+    │
+
+Pull Request
+
+    │
+
+CODEOWNERS Review
+
+    │
+
+Branch Protection Validation
+
+    │
+
+Merge into main
+
+    │
+
+GitHub Webhook
+
+    │
+
+Cloudflare Tunnel
+
+    │
+
+Jenkins Pipeline Triggered
+```
+
+---
+
+# 📂 Repository Structure
+
+```text
 secure-devsecops-flask/
 
 ├── app.py
-├── requirements.txt
 ├── Dockerfile
-├── docker-compose.yml
 ├── Jenkinsfile
+├── docker-compose.yml
+├── requirements.txt
 ├── sonar-project.properties
 │
 ├── templates/
 ├── static/
 ├── tests/
 │
-├── screenshots/
-│
-└── README.md
+├── README.md
+└── LICENSE
 ```
 
 ---
 
-# 🔄 Jenkins CI/CD Pipeline
+# 🚀 Project Highlights
 
-The Jenkins pipeline executes the following stages automatically:
+✔ Secure Git Workflow
 
+✔ Automated CI/CD Pipeline
+
+✔ Shift-Left Security
+
+✔ Continuous Code Quality Analysis
+
+✔ Automated Security Scanning
+
+✔ Container Security Validation
+
+✔ Automated Docker Image Publishing
+
+✔ Production-ready Flask Deployment
+
+# ⚙️ Jenkins CI/CD Pipeline
+
+The project uses a **Jenkins Declarative Pipeline** to automate testing, security scanning, code quality validation, containerization, and deployment.
+
+The pipeline is automatically triggered whenever changes are merged into the **main** branch.
+
+---
+
+## 🔄 Pipeline Workflow
+
+```text
+                GitHub Repository
+                        │
+                        ▼
+             GitHub Webhook Trigger
+                        │
+                        ▼
+             Cloudflare Tunnel
+                        │
+                        ▼
+             Jenkins (Localhost)
+                        │
+        ┌───────────────┼────────────────┐
+        │               │                │
+        ▼               ▼                ▼
+ Install Dependencies   Unit Testing   Security Analysis
+        │
+        ▼
+ SonarQube Analysis
+        │
+        ▼
+ Quality Gate
+        │
+        ▼
+ Docker Image Build
+        │
+        ▼
+ Trivy Image Scan
+        │
+        ▼
+ Docker Hub Push
+        │
+        ▼
+ Archive Reports
+        │
+        ▼
+ Email Notification
 ```
-Checkout
 
-↓
+---
 
-Install Dependencies
+# 📋 Jenkins Pipeline Stages
 
-↓
+| Stage | Description |
+|---------|-------------|
+| Checkout | Downloads latest source code from GitHub |
+| Install Dependencies | Creates Python virtual environment and installs project dependencies |
+| Unit Tests | Executes automated tests using Pytest |
+| Semgrep SAST | Performs Static Application Security Testing |
+| Snyk Scan | Detects dependency vulnerabilities |
+| SonarQube Analysis | Performs code quality analysis |
+| Quality Gate | Validates SonarQube Quality Gate |
+| Docker Build | Builds Docker image |
+| Trivy Scan | Scans Docker image for HIGH & CRITICAL vulnerabilities |
+| Docker Push | Publishes Docker image to Docker Hub |
+| Post Actions | Archives reports and sends email notifications |
 
-Unit Testing (Pytest)
+---
 
-↓
+# 🔒 DevSecOps Security Workflow
 
-Semgrep SAST
+The project follows a **Shift-Left Security** approach where security checks are integrated throughout the CI/CD pipeline.
 
-↓
-
-Snyk Dependency Scan
-
-↓
-
-SonarQube Analysis
-
-↓
-
+```text
+Developer
+      │
+      ▼
+GitHub Push
+      │
+      ▼
+Pre-commit Validation
+      │
+      ▼
+Jenkins Trigger
+      │
+      ▼
+Pytest
+      │
+      ▼
+Semgrep
+      │
+      ▼
+Snyk
+      │
+      ▼
+SonarQube
+      │
+      ▼
 Quality Gate
-
-↓
-
+      │
+      ▼
 Docker Build
-
-↓
-
-Trivy Image Scan
-
-↓
-
-Docker Push
+      │
+      ▼
+Trivy Scan
+      │
+      ▼
+Docker Hub
 ```
 
 ---
 
-# 🔒 Security Integration
+# 🧪 Unit Testing
 
-## ✅ Pytest
+The project uses **Pytest** for automated unit testing.
 
-- Automated unit testing
-- XML report generation
-- Executed during every pipeline run
+### Objectives
+
+- Validate application functionality
+- Prevent regression issues
+- Generate JUnit XML reports
+- Execute automatically during every pipeline run
+
+### Generated Report
+
+- `test-results.xml`
 
 ---
 
-## ✅ SonarQube
+# 🔍 Static Application Security Testing (Semgrep)
 
-- Code Quality Analysis
-- Code Smells Detection
+Semgrep scans the source code for insecure coding practices.
+
+### Benefits
+
+- Detect insecure coding patterns
+- Identify security misconfigurations
+- Generate JSON security reports
+- Automated execution inside Jenkins
+
+Generated Report
+
+```
+semgrep-report.json
+```
+
+---
+
+# 📦 Dependency Security (Snyk)
+
+Snyk scans Python dependencies for publicly disclosed vulnerabilities.
+
+### Features
+
+- Open Source Dependency Scan
+- Known Vulnerability Detection
+- JSON Report
+- HTML Report
+
+Generated Reports
+
+```
+snyk-report.json
+
+snyk-report.html
+```
+
+---
+
+# 📊 Code Quality (SonarQube)
+
+SonarQube is integrated into the pipeline for continuous code quality analysis.
+
+### Performs
+
+- Static Code Analysis
+- Code Smell Detection
+- Bug Detection
 - Maintainability Analysis
+- Security Hotspots
 - Quality Gate Validation
 
 ---
 
-## ✅ Semgrep
+# 🛡 Container Security (Trivy)
 
-- Static Application Security Testing
-- Detects insecure coding patterns
-- JSON report generation
+Trivy performs vulnerability scanning on the generated Docker image.
 
----
+### Scan Includes
 
-## ✅ Snyk
+- OS Packages
+- Python Packages
+- HIGH Vulnerabilities
+- CRITICAL Vulnerabilities
 
-- Dependency Vulnerability Analysis
-- Open Source Security Scan
-- HTML & JSON Reports
+Generated Reports
 
----
+```
+trivy-report.json
 
-## ✅ Trivy
-
-- Docker Image Vulnerability Scan
-- HIGH & CRITICAL Severity Detection
-- HTML & JSON Reports
+trivy-report.html
+```
 
 ---
 
-# 🐳 Docker
+# 🐳 Docker Security
 
-The application is containerized using Docker.
+The Flask application is containerized following security best practices.
 
-Security enhancements include:
+### Security Controls
 
 - Python Slim Base Image
 - Non-root User
-- Updated Packages
 - Health Check
 - Gunicorn Production Server
+- Updated System Packages
 
 ---
 
-# ▶️ Running Locally
+# ☁️ Cloudflare Tunnel Integration
+
+Since Jenkins is hosted on **localhost**, GitHub cannot directly access it.
+
+A **Cloudflare Tunnel** securely exposes Jenkins to receive GitHub webhook events without opening inbound ports.
+
+Workflow:
+
+```text
+GitHub Push
+
+      │
+
+Webhook Event
+
+      │
+
+Cloudflare Tunnel
+
+      │
+
+Local Jenkins
+
+      │
+
+Pipeline Execution
+```
+
+---
+
+# 📧 Automated Notifications
+
+At the end of every pipeline execution Jenkins automatically:
+
+- Archives generated reports
+- Publishes HTML reports
+- Sends build notification email
+- Attaches security reports
+
+Email includes:
+
+- Build Number
+- Build Status
+- Docker Image
+- Jenkins Build URL
+- SonarQube Dashboard Link
+
+---
+
+# 📁 Generated Reports
+
+| Report | Format |
+|----------|--------|
+| Pytest | XML |
+| Semgrep | JSON |
+| Snyk | JSON |
+| Snyk | HTML |
+| Trivy | JSON |
+| Trivy | HTML |
+
+---
+
+# 🚀 Running the Project
 
 ## Clone Repository
 
@@ -230,7 +518,9 @@ Security enhancements include:
 git clone https://github.com/akshigour12/secure-devsecops-flask.git
 ```
 
-```
+Move into the project
+
+```bash
 cd secure-devsecops-flask
 ```
 
@@ -240,7 +530,7 @@ Install dependencies
 pip install -r requirements.txt
 ```
 
-Run Flask
+Run the application
 
 ```bash
 python app.py
@@ -248,9 +538,9 @@ python app.py
 
 ---
 
-# 🐳 Run with Docker
+# 🐳 Docker Deployment
 
-Build Image
+Build Docker Image
 
 ```bash
 docker build -t secure-devsecops-flask .
@@ -259,55 +549,230 @@ docker build -t secure-devsecops-flask .
 Run Container
 
 ```bash
-docker run -p 5000:5000 secure-devsecops-flask
+docker run -d -p 5000:5000 secure-devsecops-flask
+```
+
+Access Application
+
+```
+http://localhost:5000
 ```
 
 ---
+---
 
-# 📸 Screenshots
+# 📊 Project Outcomes
 
-Add screenshots here:
+The implementation of this project demonstrates how DevSecOps practices can be integrated into the software delivery lifecycle.
 
-- Application UI
-- Jenkins Pipeline
-- SonarQube Dashboard
-- Snyk Report
-- Trivy Report
-- Semgrep Report
-- Docker Hub Repository
+### Achievements
+
+- ✔ Secure Git workflow using Branch Protection Rules and CODEOWNERS
+- ✔ Automated CI/CD using Jenkins Declarative Pipeline
+- ✔ Automated Unit Testing using Pytest
+- ✔ Static Application Security Testing using Semgrep
+- ✔ Dependency Vulnerability Scanning using Snyk
+- ✔ Continuous Code Quality Analysis using SonarQube
+- ✔ Docker Image Vulnerability Scanning using Trivy
+- ✔ Automated Docker Image Publishing to Docker Hub
+- ✔ Automated Email Notifications
+- ✔ HTML & JSON Report Generation
+- ✔ Secure Jenkins Trigger using Cloudflare Tunnel
 
 ---
 
-# 📈 Pipeline Reports
+# 📸 Project Screenshots
 
-The pipeline automatically generates:
+> **Note:** Add screenshots inside a `screenshots/` folder and update the paths below.
 
-- JUnit XML Report
-- Semgrep JSON Report
-- Snyk JSON Report
-- Snyk HTML Report
-- Trivy JSON Report
-- Trivy HTML Report
+## Application
 
-Reports are archived in Jenkins after every successful build.
+![Application](screenshots/application-home.png)
 
 ---
 
-# 🚀 Future Improvements
+## GitHub Repository
+
+![GitHub](screenshots/github-repository.png)
+
+---
+
+## Branch Protection Rules
+
+![Branch Protection](screenshots/branch-protection.png)
+
+---
+
+## CODEOWNERS Configuration
+
+![CODEOWNERS](screenshots/codeowners.png)
+
+---
+
+## Pull Request Workflow
+
+![Pull Request](screenshots/pull-request.png)
+
+---
+
+## Jenkins Pipeline
+
+![Jenkins](screenshots/jenkins-pipeline.png)
+
+---
+
+## SonarQube Dashboard
+
+![SonarQube](screenshots/sonarqube-dashboard.png)
+
+---
+
+## Semgrep Report
+
+![Semgrep](screenshots/semgrep-report.png)
+
+---
+
+## Snyk Report
+
+![Snyk](screenshots/snyk-report.png)
+
+---
+
+## Trivy Report
+
+![Trivy](screenshots/trivy-report.png)
+
+---
+
+## Docker Hub Repository
+
+![DockerHub](screenshots/dockerhub.png)
+
+---
+
+# 📁 Reports Generated
+
+During every pipeline execution the following reports are automatically generated and archived.
+
+| Report | Format |
+|---------|--------|
+| Pytest | XML |
+| Semgrep | JSON |
+| Snyk | JSON |
+| Snyk | HTML |
+| Trivy | JSON |
+| Trivy | HTML |
+
+---
+
+# 🔐 Security Controls Implemented
+
+## Git Security
+
+- Feature Branch Workflow
+- Branch Protection Rules
+- CODEOWNERS
+- Pull Request Approval
+- Pre-commit Hooks
+- GitHub Webhooks
+
+---
+
+## CI/CD Security
+
+- Automated Pipeline
+- Quality Gate Validation
+- Automated Security Scans
+- Report Archiving
+- Email Notifications
+
+---
+
+## Container Security
+
+- Non-root User
+- Python Slim Image
+- Docker Health Check
+- Gunicorn Production Server
+
+---
+
+# 🚀 Future Enhancements
+
+Future improvements planned for this project include:
 
 - Kubernetes Deployment
-- GitHub Actions Pipeline
-- Terraform Infrastructure
+- GitHub Actions CI/CD Pipeline
 - OWASP ZAP DAST Integration
 - Prometheus Monitoring
 - Grafana Dashboard
-- Automated Deployment to Cloud
+- Terraform Infrastructure as Code
+- AWS ECS/EKS Deployment
+- Secrets Management using HashiCorp Vault
+- Automated Version Tagging
+- Slack / Microsoft Teams Notifications
 
 ---
 
-# ⚠️ Known Issue
+# ⚠ Known Limitations
 
-The current Trivy scan reports HIGH vulnerabilities related to Python packages inside the container image. The application upgrades core Python packaging tools during the Docker build, while dependency scanning reports no known vulnerabilities. This difference is documented for future investigation and improvement.
+- Trivy currently reports container package vulnerabilities that require further investigation.
+- Some Semgrep findings are informational and related to development configuration.
+- The current deployment is intended for demonstration and learning purposes.
+
+---
+
+# 💼 Resume Highlights
+
+This project demonstrates practical experience with:
+
+- DevSecOps
+- Continuous Integration & Continuous Delivery
+- Secure SDLC
+- Docker Containerization
+- Git Security
+- Static Application Security Testing
+- Dependency Security
+- Container Security
+- Jenkins Automation
+- Code Quality Analysis
+
+---
+
+# 🎯 Skills Demonstrated
+
+- Python
+- Flask
+- Git
+- GitHub
+- Jenkins
+- Docker
+- SonarQube
+- Semgrep
+- Snyk
+- Trivy
+- Cloudflare Tunnel
+- Gunicorn
+- Linux
+- Shell Scripting
+
+---
+
+# 🤝 Contribution
+
+Contributions, suggestions, and improvements are welcome.
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Open a Pull Request
+
+---
+
+# 📄 License
+
+This project is licensed under the **MIT License**.
 
 ---
 
@@ -315,12 +780,24 @@ The current Trivy scan reports HIGH vulnerabilities related to Python packages i
 
 **Akshita Gour**
 
-GitHub: https://github.com/akshigour12
+**GitHub:** https://github.com/akshigour12
 
-LinkedIn: https://www.linkedin.com/in/akshita-g-6a24871a4/
+**LinkedIn:** https://www.linkedin.com/in/<your-linkedin-username>
 
 ---
 
-# ⭐ Support
+## ⭐ Support
 
-If you found this project useful, consider giving it a ⭐ on GitHub.
+If you found this project useful, consider giving it a **Star ⭐** on GitHub.
+
+If you have any suggestions or feedback, feel free to open an Issue or Pull Request.
+
+---
+
+<p align="center">
+
+### 🔐 Secure Code • 🚀 Automated Delivery • 🛡 Security First
+
+**Built with ❤️ using Flask, Jenkins, Docker & DevSecOps Practices**
+
+</p>
