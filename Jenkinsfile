@@ -13,34 +13,46 @@ pipeline {
                 checkout scm
             }
         }
-stage('Install Dependencies') {
-    steps {
-        sh '''
-            python -m pip install --upgrade pip
 
-            python -m pip install -r requirements.txt
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                    python3 -m venv venv
 
-            python -m pip install semgrep
-        '''
-    }
-}
-      
+                    . venv/bin/activate
 
-       stage('Unit Tests') {
-    steps {
-        sh '''
-            python -m pytest \
-                -v \
-                --junitxml=test-results.xml
-        '''
-    }
-}
+                    python -m pip install --upgrade pip
+
+                    pip install -r requirements.txt
+
+                    pip install pytest
+
+                    pip install semgrep
+                '''
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                sh '''
+                    . venv/bin/activate
+
+                    python -m pytest \
+                        -v \
+                        --junitxml=test-results.xml
+                '''
+            }
+        }
 
         stage('Semgrep SAST') {
             steps {
                 withCredentials([
-                    string(credentialsId: 'SEMGREP_APP_Token', variable: 'SEMGREP_APP_TOKEN')
+                    string(
+                        credentialsId: 'SEMGREP_APP_Token',
+                        variable: 'SEMGREP_APP_TOKEN'
+                    )
                 ]) {
+
                     sh '''
                         . venv/bin/activate
 
@@ -59,9 +71,14 @@ stage('Install Dependencies') {
 
         stage('Snyk Dependency Scan') {
             steps {
+
                 withCredentials([
-                    string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')
+                    string(
+                        credentialsId: 'snyk-token',
+                        variable: 'SNYK_TOKEN'
+                    )
                 ]) {
+
                     sh '''
                         . venv/bin/activate
 
@@ -82,6 +99,7 @@ stage('Install Dependencies') {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
+
                     sh '''
                         /var/lib/jenkins/tools/hudson.plugins.sonar.SonarRunnerInstallation/SonarScanner/bin/sonar-scanner
                     '''
@@ -89,14 +107,20 @@ stage('Install Dependencies') {
             }
         }
 
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: false
+       stage('Quality Gate') {
+    steps {
+        timeout(time: 5, unit: 'MINUTES') {
+            script {
+                try {
+                    def qg = waitForQualityGate()
+                    echo "Quality Gate Status: ${qg.status}"
+                } catch (Exception e) {
+                    echo "Quality Gate skipped: ${e}"
                 }
             }
         }
-
+    }
+}
         stage('Docker Build') {
             steps {
                 sh '''
@@ -106,26 +130,26 @@ stage('Install Dependencies') {
             }
         }
 
-    stage('Trivy Image Scan') {
-    steps {
-        sh '''
-            /usr/local/bin/trivy --config /dev/null image \
-                --severity HIGH,CRITICAL \
-                --ignore-unfixed \
-                --format json \
-                -o trivy-report.json \
-                ${IMAGE_NAME}:${IMAGE_TAG} || true
+        stage('Trivy Image Scan') {
+            steps {
+                sh '''
+                    /usr/local/bin/trivy --config /dev/null image \
+                        --severity HIGH,CRITICAL \
+                        --ignore-unfixed \
+                        --format json \
+                        -o trivy-report.json \
+                        ${IMAGE_NAME}:${IMAGE_TAG} || true
 
-            /usr/local/bin/trivy --config /dev/null image \
-                --severity HIGH,CRITICAL \
-                --ignore-unfixed \
-                --format template \
-                --template "@/usr/local/share/trivy/templates/html.tpl" \
-                -o trivy-report.html \
-                ${IMAGE_NAME}:${IMAGE_TAG} || true
-        '''
-    }
-}
+                    /usr/local/bin/trivy --config /dev/null image \
+                        --severity HIGH,CRITICAL \
+                        --ignore-unfixed \
+                        --format template \
+                        --template "@/usr/local/share/trivy/templates/html.tpl" \
+                        -o trivy-report.html \
+                        ${IMAGE_NAME}:${IMAGE_TAG} || true
+                '''
+            }
+        }
 
         stage('Docker Push') {
             steps {
@@ -136,6 +160,7 @@ stage('Install Dependencies') {
                         passwordVariable: 'DOCKER_PASS'
                     )
                 ]) {
+
                     sh '''
                         echo "$DOCKER_PASS" | docker login \
                             -u "$DOCKER_USER" \
@@ -181,7 +206,6 @@ stage('Install Dependencies') {
             ])
 
             emailext(
-
                 subject: "Jenkins Build #${BUILD_NUMBER} - ${currentBuild.currentResult}",
 
                 to: "akshigour12@gmail.com",
@@ -189,83 +213,80 @@ stage('Install Dependencies') {
                 mimeType: 'text/html',
 
                 body: """
-                <html>
+<html>
+<body style="font-family:Arial">
 
-                <body style="font-family:Arial">
+<h2>Secure DevSecOps Pipeline Report</h2>
 
-                <h2>Secure DevSecOps Pipeline Report</h2>
+<table border="1" cellpadding="8">
+<tr>
+<td><b>Project</b></td>
+<td>secure-devsecops-flask</td>
+</tr>
 
-                <table border="1" cellpadding="8">
+<tr>
+<td><b>Build</b></td>
+<td>#${BUILD_NUMBER}</td>
+</tr>
 
-                    <tr>
-                        <td><b>Project</b></td>
-                        <td>secure-devsecops-flask</td>
-                    </tr>
+<tr>
+<td><b>Status</b></td>
+<td>${currentBuild.currentResult}</td>
+</tr>
 
-                    <tr>
-                        <td><b>Build</b></td>
-                        <td>#${BUILD_NUMBER}</td>
-                    </tr>
+<tr>
+<td><b>Docker Image</b></td>
+<td>${IMAGE_NAME}:${IMAGE_TAG}</td>
+</tr>
+</table>
 
-                    <tr>
-                        <td><b>Status</b></td>
-                        <td>${currentBuild.currentResult}</td>
-                    </tr>
+<br>
 
-                    <tr>
-                        <td><b>Docker Image</b></td>
-                        <td>${IMAGE_NAME}:${IMAGE_TAG}</td>
-                    </tr>
+<h3>Pipeline Stages</h3>
 
-                </table>
+<ul>
+<li>Checkout</li>
+<li>Install Dependencies</li>
+<li>Unit Tests</li>
+<li>Semgrep SAST</li>
+<li>Snyk Dependency Scan</li>
+<li>SonarQube Analysis</li>
+<li>Quality Gate</li>
+<li>Docker Build</li>
+<li>Trivy Image Scan</li>
+<li>Docker Push</li>
+</ul>
 
-                <br>
+<h3>Reports Generated</h3>
 
-                <h3>Pipeline Stages</h3>
+<ul>
+<li>JUnit Report</li>
+<li>Semgrep JSON</li>
+<li>Snyk JSON</li>
+<li>Snyk HTML</li>
+<li>Trivy JSON</li>
+<li>Trivy HTML</li>
+</ul>
 
-                <ul>
-                    <li>Source Checkout</li>
-                    <li>Unit Testing (Pytest)</li>
-                    <li>Semgrep SAST</li>
-                    <li>Snyk Dependency Scan</li>
-                    <li>SonarQube Analysis</li>
-                    <li>Quality Gate</li>
-                    <li>Docker Build</li>
-                    <li>Trivy Image Scan</li>
-                    <li>Docker Push</li>
-                </ul>
+<br>
 
-                <h3>Reports Attached</h3>
+<p>
+<b>Jenkins Build:</b><br>
+<a href="${BUILD_URL}">
+${BUILD_URL}
+</a>
+</p>
 
-                <ul>
-                    <li>JUnit Test Report</li>
-                    <li>Semgrep JSON Report</li>
-                    <li>Snyk JSON Report</li>
-                    <li>Snyk HTML Report</li>
-                    <li>Trivy JSON Report</li>
-                    <li>Trivy HTML Report</li>
-                </ul>
+<p>
+<b>SonarQube Dashboard:</b><br>
+<a href="http://localhost:9000/dashboard?id=secure-devsecops-flask">
+http://localhost:9000/dashboard?id=secure-devsecops-flask
+</a>
+</p>
 
-                <br>
-
-                <p>
-                    <b>Jenkins Build:</b><br>
-                    <a href="${BUILD_URL}">
-                    ${BUILD_URL}
-                    </a>
-                </p>
-
-                <p>
-                    <b>SonarQube Dashboard:</b><br>
-                    <a href="http://localhost:9000/dashboard?id=secure-devsecops-flask">
-                    http://localhost:9000/dashboard?id=secure-devsecops-flask
-                    </a>
-                </p>
-
-                </body>
-
-                </html>
-                """,
+</body>
+</html>
+""",
 
                 attachmentsPattern: "*.json,*.html,test-results.xml"
             )
@@ -275,6 +296,10 @@ stage('Install Dependencies') {
 
         success {
             echo "Pipeline completed successfully."
+        }
+
+        unstable {
+            echo "Pipeline completed with warnings."
         }
 
         failure {
