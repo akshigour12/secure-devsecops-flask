@@ -573,7 +573,7 @@ The implementation of this project demonstrates how DevSecOps practices can be i
 
 ## 🏠 Application Home Page
 
-![Application Home](images/application login.png)
+![Application Home](images/application-home.png)
 
 Landing page of the Secure DevSecOps Flask application.
 
