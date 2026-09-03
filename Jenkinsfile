@@ -108,26 +108,26 @@ pipeline {
             }
         }
 
-        stage('Trivy Image Scan') {
-            steps {
-                sh '''
-                    trivy image \
-                        --severity HIGH,CRITICAL \
-                        --ignore-unfixed \
-                        --format json \
-                        -o trivy-report.json \
-                        ${IMAGE_NAME}:${IMAGE_TAG}
+       stage('Trivy Image Scan') {
+    steps {
+        sh '''
+            /usr/local/bin/trivy --config /dev/null image \
+                --severity HIGH,CRITICAL \
+                --ignore-unfixed \
+                --format json \
+                -o trivy-report.json \
+                ${IMAGE_NAME}:${IMAGE_TAG}
 
-                    trivy image \
-                        --severity HIGH,CRITICAL \
-                        --ignore-unfixed \
-                        --format template \
-                        --template "@/usr/local/share/trivy/templates/html.tpl" \
-                        -o trivy-report.html \
-                        ${IMAGE_NAME}:${IMAGE_TAG} || true
-                '''
-            }
-        }
+            /usr/local/bin/trivy --config /dev/null image \
+                --severity HIGH,CRITICAL \
+                --ignore-unfixed \
+                --format template \
+                --template "@/usr/local/share/trivy/templates/html.tpl" \
+                -o trivy-report.html \
+                ${IMAGE_NAME}:${IMAGE_TAG} || true
+        '''
+    }
+}
 
         stage('Docker Push') {
             steps {
