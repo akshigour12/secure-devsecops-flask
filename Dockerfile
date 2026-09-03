@@ -16,7 +16,9 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Upgrade pip & setuptools and install dependencies
-RUN python -m pip install --no-cache-dir --upgrade pip setuptools && \
+RUN python -m pip install --no-cache-dir --upgrade \
+        pip \
+        "setuptools>=78.1.1" && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy application source
