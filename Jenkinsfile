@@ -32,17 +32,22 @@ pipeline {
             }
         }
 
-        stage('Unit Tests') {
-            steps {
-                sh '''
-                    . venv/bin/activate
+       stage('Unit Tests') {
+    steps {
+        withCredentials([
+            string(credentialsId: 'app-username', variable: 'APP_USERNAME'),
+            string(credentialsId: 'app-password', variable: 'APP_PASSWORD')
+        ]) {
+            sh '''
+                . venv/bin/activate
 
-                    python -m pytest \
-                        -v \
-                        --junitxml=test-results.xml
-                '''
-            }
+                python -m pytest \
+                    -v \
+                    --junitxml=test-results.xml
+            '''
         }
+    }
+}
 
         stage('Semgrep SAST') {
             steps {
