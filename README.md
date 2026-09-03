@@ -581,7 +581,7 @@ Landing page of the Secure DevSecOps Flask application.
 
 ## 📝 Contact Page
 
-![Contact Page](screenshots/application-contact.png)
+![Contact Page](images/application-contact.png)
 
 Contact form available in the Flask application.
 
@@ -589,7 +589,7 @@ Contact form available in the Flask application.
 
 ## ❤️ Health Check Endpoint
 
-![Health Endpoint](screenshots/application-health.png)
+![Health Endpoint](images/application-health.png)
 
 Health endpoint used by Docker Health Check and monitoring.
 
@@ -597,7 +597,7 @@ Health endpoint used by Docker Health Check and monitoring.
 
 ## ⚙️ Jenkins Pipeline
 
-![Jenkins Pipeline](screenshots/jenkins-pipeline.png)
+![Jenkins Pipeline](images/jenkins-pipeline.png)
 
 Successful execution of the complete DevSecOps CI/CD pipeline.
 
@@ -618,7 +618,7 @@ Pipeline stages include:
 
 ## 📦 Jenkins Build Artifacts
 
-![Build Artifacts](screenshots/jenkins-artifacts.png)
+![Jenkins Artifacts](images/jenkins-artifacts.png)
 
 Artifacts generated automatically after every pipeline execution.
 
@@ -635,7 +635,7 @@ Generated reports include:
 
 ## 📧 Email Notification
 
-![Email Notification](screenshots/email-notification.png)
+![Email Notification](images/email-notification.png)
 
 Automatic HTML email notification sent after every successful pipeline execution containing:
 
