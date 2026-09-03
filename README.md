@@ -495,20 +495,6 @@ Email includes:
 - Jenkins Build URL
 - SonarQube Dashboard Link
 
----
-
-# 📁 Generated Reports
-
-| Report | Format |
-|----------|--------|
-| Pytest | XML |
-| Semgrep | JSON |
-| Snyk | JSON |
-| Snyk | HTML |
-| Trivy | JSON |
-| Trivy | HTML |
-
----
 
 # 🚀 Running the Project
 
@@ -585,73 +571,78 @@ The implementation of this project demonstrates how DevSecOps practices can be i
 
 # 📸 Project Screenshots
 
-> **Note:** Add screenshots inside a `screenshots/` folder and update the paths below.
+## 🏠 Application Home Page
 
-## Application
+![Application Home](screenshots/application-home.png)
 
-![Application](screenshots/application-home.png)
-
----
-
-## GitHub Repository
-
-![GitHub](screenshots/github-repository.png)
+Landing page of the Secure DevSecOps Flask application.
 
 ---
 
-## Branch Protection Rules
+## 📝 Contact Page
 
-![Branch Protection](screenshots/branch-protection.png)
+![Contact Page](screenshots/application-contact.png)
 
----
-
-## CODEOWNERS Configuration
-
-![CODEOWNERS](screenshots/codeowners.png)
+Contact form available in the Flask application.
 
 ---
 
-## Pull Request Workflow
+## ❤️ Health Check Endpoint
 
-![Pull Request](screenshots/pull-request.png)
+![Health Endpoint](screenshots/application-health.png)
 
----
-
-## Jenkins Pipeline
-
-![Jenkins](screenshots/jenkins-pipeline.png)
+Health endpoint used by Docker Health Check and monitoring.
 
 ---
 
-## SonarQube Dashboard
+## ⚙️ Jenkins Pipeline
 
-![SonarQube](screenshots/sonarqube-dashboard.png)
+![Jenkins Pipeline](screenshots/jenkins-pipeline.png)
 
----
+Successful execution of the complete DevSecOps CI/CD pipeline.
 
-## Semgrep Report
+Pipeline stages include:
 
-![Semgrep](screenshots/semgrep-report.png)
-
----
-
-## Snyk Report
-
-![Snyk](screenshots/snyk-report.png)
-
----
-
-## Trivy Report
-
-![Trivy](screenshots/trivy-report.png)
+- Checkout
+- Install Dependencies
+- Unit Tests
+- Semgrep SAST
+- Snyk Dependency Scan
+- SonarQube Analysis
+- Quality Gate
+- Docker Build
+- Trivy Scan
+- Docker Push
 
 ---
 
-## Docker Hub Repository
+## 📦 Jenkins Build Artifacts
 
-![DockerHub](screenshots/dockerhub.png)
+![Build Artifacts](screenshots/jenkins-artifacts.png)
+
+Artifacts generated automatically after every pipeline execution.
+
+Generated reports include:
+
+- Pytest XML Report
+- Semgrep JSON Report
+- Snyk JSON Report
+- Snyk HTML Report
+- Trivy JSON Report
+- Trivy HTML Report
 
 ---
+
+## 📧 Email Notification
+
+![Email Notification](screenshots/email-notification.png)
+
+Automatic HTML email notification sent after every successful pipeline execution containing:
+
+- Build Status
+- Docker Image Information
+- Jenkins Build URL
+- SonarQube Dashboard Link
 
 # 📁 Reports Generated
 
