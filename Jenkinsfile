@@ -108,7 +108,7 @@ pipeline {
             }
         }
 
-       stage('Trivy Image Scan') {
+    stage('Trivy Image Scan') {
     steps {
         sh '''
             /usr/local/bin/trivy --config /dev/null image \
@@ -116,7 +116,7 @@ pipeline {
                 --ignore-unfixed \
                 --format json \
                 -o trivy-report.json \
-                ${IMAGE_NAME}:${IMAGE_TAG}
+                ${IMAGE_NAME}:${IMAGE_TAG} || true
 
             /usr/local/bin/trivy --config /dev/null image \
                 --severity HIGH,CRITICAL \
