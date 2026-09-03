@@ -33,7 +33,7 @@ pipeline {
                     . venv/bin/activate
 
                     pytest -v \
-                    --junitxml=test-results.xml || true
+                        --junitxml=test-results.xml || true
                 '''
             }
         }
@@ -51,9 +51,9 @@ pipeline {
                         semgrep login || true
 
                         semgrep scan \
-                        --config auto \
-                        --json \
-                        --output semgrep-report.json || true
+                            --config auto \
+                            --json \
+                            --output semgrep-report.json || true
                     '''
                 }
             }
@@ -70,14 +70,12 @@ pipeline {
                         snyk auth $SNYK_TOKEN
 
                         snyk test \
-                        --command=python3 \
-                        --json-file-output=snyk-report.json || true
-
-                        npm install -g snyk-to-html || true
+                            --command=python3 \
+                            --json-file-output=snyk-report.json || true
 
                         snyk-to-html \
-                        -i snyk-report.json \
-                        -o snyk-report.html || true
+                            -i snyk-report.json \
+                            -o snyk-report.html || true
                     '''
                 }
             }
@@ -87,7 +85,7 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
-                    /var/lib/jenkins/tools/hudson.plugins.sonar.SonarRunnerInstallation/SonarScanner/bin/sonar-scanner
+                        /var/lib/jenkins/tools/hudson.plugins.sonar.SonarRunnerInstallation/SonarScanner/bin/sonar-scanner
                     '''
                 }
             }
@@ -105,7 +103,7 @@ pipeline {
             steps {
                 sh '''
                     docker build \
-                    -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                        -t ${IMAGE_NAME}:${IMAGE_TAG} .
                 '''
             }
         }
@@ -114,19 +112,19 @@ pipeline {
             steps {
                 sh '''
                     trivy image \
-                    --severity HIGH,CRITICAL \
-                    --ignore-unfixed \
-                    --format json \
-                    -o trivy-report.json \
-                    ${IMAGE_NAME}:${IMAGE_TAG}
+                        --severity HIGH,CRITICAL \
+                        --ignore-unfixed \
+                        --format json \
+                        -o trivy-report.json \
+                        ${IMAGE_NAME}:${IMAGE_TAG}
 
                     trivy image \
-                    --severity HIGH,CRITICAL \
-                    --ignore-unfixed \
-                    --format template \
-                    --template "@contrib/html.tpl" \
-                    -o trivy-report.html \
-                    ${IMAGE_NAME}:${IMAGE_TAG} || true
+                        --severity HIGH,CRITICAL \
+                        --ignore-unfixed \
+                        --format template \
+                        --template "@/usr/local/share/trivy/templates/html.tpl" \
+                        -o trivy-report.html \
+                        ${IMAGE_NAME}:${IMAGE_TAG} || true
                 '''
             }
         }
@@ -142,30 +140,29 @@ pipeline {
                 ]) {
                     sh '''
                         echo "$DOCKER_PASS" | docker login \
-                        -u "$DOCKER_USER" \
-                        --password-stdin
+                            -u "$DOCKER_USER" \
+                            --password-stdin
 
                         docker push ${IMAGE_NAME}:${IMAGE_TAG}
                     '''
                 }
             }
         }
-
     }
 
     post {
 
         always {
 
-            junit allowEmptyResults: true,
-                  testResults: 'test-results.xml'
+            junit(
+                allowEmptyResults: true,
+                testResults: 'test-results.xml'
+            )
 
-            archiveArtifacts artifacts: '''
-                *.json,
-                *.html,
-                test-results.xml
-            ''',
-            allowEmptyArchive: true
+            archiveArtifacts(
+                artifacts: '*.json,*.html,test-results.xml',
+                allowEmptyArchive: true
+            )
 
             publishHTML(target: [
                 allowMissing: true,
@@ -186,42 +183,93 @@ pipeline {
             ])
 
             emailext(
-                subject: "Build #${BUILD_NUMBER} - ${currentBuild.currentResult}",
+
+                subject: "Jenkins Build #${BUILD_NUMBER} - ${currentBuild.currentResult}",
+
+                to: "akshigour12@gmail.com",
+
                 mimeType: 'text/html',
-                to: 'YOUR_EMAIL@gmail.com',
 
                 body: """
-                <h2>Secure DevSecOps Pipeline</h2>
+                <html>
 
-                <p><b>Build:</b> #${BUILD_NUMBER}</p>
+                <body style="font-family:Arial">
 
-                <p><b>Status:</b> ${currentBuild.currentResult}</p>
+                <h2>Secure DevSecOps Pipeline Report</h2>
 
-                <p><b>Project:</b> secure-devsecops-flask</p>
+                <table border="1" cellpadding="8">
 
-                <p>
-                <a href="${BUILD_URL}">
-                Open Jenkins Build
-                </a>
-                </p>
+                    <tr>
+                        <td><b>Project</b></td>
+                        <td>secure-devsecops-flask</td>
+                    </tr>
 
-                <hr>
+                    <tr>
+                        <td><b>Build</b></td>
+                        <td>#${BUILD_NUMBER}</td>
+                    </tr>
+
+                    <tr>
+                        <td><b>Status</b></td>
+                        <td>${currentBuild.currentResult}</td>
+                    </tr>
+
+                    <tr>
+                        <td><b>Docker Image</b></td>
+                        <td>${IMAGE_NAME}:${IMAGE_TAG}</td>
+                    </tr>
+
+                </table>
+
+                <br>
+
+                <h3>Pipeline Stages</h3>
+
+                <ul>
+                    <li>Source Checkout</li>
+                    <li>Unit Testing (Pytest)</li>
+                    <li>Semgrep SAST</li>
+                    <li>Snyk Dependency Scan</li>
+                    <li>SonarQube Analysis</li>
+                    <li>Quality Gate</li>
+                    <li>Docker Build</li>
+                    <li>Trivy Image Scan</li>
+                    <li>Docker Push</li>
+                </ul>
 
                 <h3>Reports Attached</h3>
 
                 <ul>
-                  <li>JUnit Test Report</li>
-                  <li>Semgrep Report</li>
-                  <li>Snyk Report</li>
-                  <li>Trivy Report</li>
+                    <li>JUnit Test Report</li>
+                    <li>Semgrep JSON Report</li>
+                    <li>Snyk JSON Report</li>
+                    <li>Snyk HTML Report</li>
+                    <li>Trivy JSON Report</li>
+                    <li>Trivy HTML Report</li>
                 </ul>
+
+                <br>
+
+                <p>
+                    <b>Jenkins Build:</b><br>
+                    <a href="${BUILD_URL}">
+                    ${BUILD_URL}
+                    </a>
+                </p>
+
+                <p>
+                    <b>SonarQube Dashboard:</b><br>
+                    <a href="http://localhost:9000/dashboard?id=secure-devsecops-flask">
+                    http://localhost:9000/dashboard?id=secure-devsecops-flask
+                    </a>
+                </p>
+
+                </body>
+
+                </html>
                 """,
 
-                attachmentsPattern: '''
-                    *.html,
-                    *.json,
-                    test-results.xml
-                '''
+                attachmentsPattern: "*.json,*.html,test-results.xml"
             )
 
             cleanWs()
