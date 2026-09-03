@@ -696,7 +696,6 @@ During every pipeline execution the following reports are automatically generate
 Future improvements planned for this project include:
 
 - Kubernetes Deployment
-- GitHub Actions CI/CD Pipeline
 - OWASP ZAP DAST Integration
 - Prometheus Monitoring
 - Grafana Dashboard
