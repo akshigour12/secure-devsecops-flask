@@ -716,41 +716,7 @@ Future improvements planned for this project include:
 
 ---
 
-# 💼 Resume Highlights
 
-This project demonstrates practical experience with:
-
-- DevSecOps
-- Continuous Integration & Continuous Delivery
-- Secure SDLC
-- Docker Containerization
-- Git Security
-- Static Application Security Testing
-- Dependency Security
-- Container Security
-- Jenkins Automation
-- Code Quality Analysis
-
----
-
-# 🎯 Skills Demonstrated
-
-- Python
-- Flask
-- Git
-- GitHub
-- Jenkins
-- Docker
-- SonarQube
-- Semgrep
-- Snyk
-- Trivy
-- Cloudflare Tunnel
-- Gunicorn
-- Linux
-- Shell Scripting
-
----
 
 # 🤝 Contribution
 
@@ -787,10 +753,3 @@ If you have any suggestions or feedback, feel free to open an Issue or Pull Requ
 
 ---
 
-<p align="center">
-
-### 🔐 Secure Code • 🚀 Automated Delivery • 🛡 Security First
-
-**Built with ❤️ using Flask, Jenkins, Docker & DevSecOps Practices**
-
-</p>
