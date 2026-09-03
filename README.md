@@ -533,7 +533,7 @@ pip install -r requirements.txt
 Run the application
 
 ```bash
-python app.py
+APP_USERNAME=<username> APP_PASSWORD=<password> python app.py 
 ```
 
 ---
@@ -549,7 +549,9 @@ docker build -t secure-devsecops-flask .
 Run Container
 
 ```bash
-docker run -d -p 5000:5000 secure-devsecops-flask
+docker run -e APP_USERNAME=<username> \
+           -e APP_PASSWORD=<password> \
+           -p 5000:5000 secure-devsecops-flask 
 ```
 
 Access Application
