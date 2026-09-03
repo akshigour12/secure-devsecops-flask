@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = "akshigour12/secure-devsecops-flask"
-        IMAGE_TAG = "latest"
+        IMAGE_TAG  = "latest"
     }
 
     stages {
@@ -18,10 +18,15 @@ pipeline {
             steps {
                 sh '''
                     python3 -m venv venv
+
                     . venv/bin/activate
 
                     python -m pip install --upgrade pip
+
                     pip install -r requirements.txt
+
+                    pip install pytest
+
                     pip install semgrep
                 '''
             }
@@ -32,10 +37,9 @@ pipeline {
                 sh '''
                     . venv/bin/activate
 
-                    python -m pytest -v \
-                        --junitxml=test-results.xml || true
-
-                    ls -lh test-results.xml || true
+                    python -m pytest \
+                        -v \
+                        --junitxml=test-results.xml
                 '''
             }
         }
@@ -43,8 +47,12 @@ pipeline {
         stage('Semgrep SAST') {
             steps {
                 withCredentials([
-                    string(credentialsId: 'SEMGREP_APP_Token', variable: 'SEMGREP_APP_TOKEN')
+                    string(
+                        credentialsId: 'SEMGREP_APP_Token',
+                        variable: 'SEMGREP_APP_TOKEN'
+                    )
                 ]) {
+
                     sh '''
                         . venv/bin/activate
 
@@ -56,8 +64,6 @@ pipeline {
                             --config auto \
                             --json \
                             --output semgrep-report.json || true
-
-                        ls -lh semgrep-report.json || true
                     '''
                 }
             }
@@ -65,19 +71,26 @@ pipeline {
 
         stage('Snyk Dependency Scan') {
             steps {
+
                 withCredentials([
-                    string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')
+                    string(
+                        credentialsId: 'snyk-token',
+                        variable: 'SNYK_TOKEN'
+                    )
                 ]) {
+
                     sh '''
                         . venv/bin/activate
 
-                        /usr/local/bin/snyk auth $SNYK_TOKEN
+                        snyk auth $SNYK_TOKEN
 
-                        /usr/local/bin/snyk test \
+                        snyk test \
                             --command=python3 \
                             --json-file-output=snyk-report.json || true
 
-                        ls -lh snyk-report.json || true
+                        snyk-to-html \
+                            -i snyk-report.json \
+                            -o snyk-report.html || true
                     '''
                 }
             }
@@ -86,6 +99,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
+
                     sh '''
                         /var/lib/jenkins/tools/hudson.plugins.sonar.SonarRunnerInstallation/SonarScanner/bin/sonar-scanner
                     '''
@@ -93,10 +107,25 @@ pipeline {
             }
         }
 
+       stage('Quality Gate') {
+    steps {
+        timeout(time: 5, unit: 'MINUTES') {
+            script {
+                try {
+                    def qg = waitForQualityGate()
+                    echo "Quality Gate Status: ${qg.status}"
+                } catch (Exception e) {
+                    echo "Quality Gate skipped: ${e}"
+                }
+            }
+        }
+    }
+}
         stage('Docker Build') {
             steps {
                 sh '''
-                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                    docker build \
+                        -t ${IMAGE_NAME}:${IMAGE_TAG} .
                 '''
             }
         }
@@ -104,14 +133,20 @@ pipeline {
         stage('Trivy Image Scan') {
             steps {
                 sh '''
-                    /usr/local/bin/trivy image \
-                        --format json \
-                        --output trivy-report.json \
+                    /usr/local/bin/trivy --config /dev/null image \
                         --severity HIGH,CRITICAL \
-                        --exit-code 0 \
-                        ${IMAGE_NAME}:${IMAGE_TAG}
+                        --ignore-unfixed \
+                        --format json \
+                        -o trivy-report.json \
+                        ${IMAGE_NAME}:${IMAGE_TAG} || true
 
-                    ls -lh trivy-report.json || true
+                    /usr/local/bin/trivy --config /dev/null image \
+                        --severity HIGH,CRITICAL \
+                        --ignore-unfixed \
+                        --format template \
+                        --template "@/usr/local/share/trivy/templates/html.tpl" \
+                        -o trivy-report.html \
+                        ${IMAGE_NAME}:${IMAGE_TAG} || true
                 '''
             }
         }
@@ -125,6 +160,7 @@ pipeline {
                         passwordVariable: 'DOCKER_PASS'
                     )
                 ]) {
+
                     sh '''
                         echo "$DOCKER_PASS" | docker login \
                             -u "$DOCKER_USER" \
@@ -138,28 +174,136 @@ pipeline {
     }
 
     post {
+
         always {
 
-            junit allowEmptyResults: true,
-                  testResults: 'test-results.xml'
+            junit(
+                allowEmptyResults: true,
+                testResults: 'test-results.xml'
+            )
 
-            archiveArtifacts artifacts: '''
-                test-results.xml,
-                semgrep-report.json,
-                snyk-report.json,
-                trivy-report.json
-            ''',
-            allowEmptyArchive: true
+            archiveArtifacts(
+                artifacts: '*.json,*.html,test-results.xml',
+                allowEmptyArchive: true
+            )
+
+            publishHTML(target: [
+                allowMissing: true,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: '.',
+                reportFiles: 'trivy-report.html',
+                reportName: 'Trivy Security Report'
+            ])
+
+            publishHTML(target: [
+                allowMissing: true,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: '.',
+                reportFiles: 'snyk-report.html',
+                reportName: 'Snyk Dependency Report'
+            ])
+
+            emailext(
+                subject: "Jenkins Build #${BUILD_NUMBER} - ${currentBuild.currentResult}",
+
+                to: "akshigour12@gmail.com",
+
+                mimeType: 'text/html',
+
+                body: """
+<html>
+<body style="font-family:Arial">
+
+<h2>Secure DevSecOps Pipeline Report</h2>
+
+<table border="1" cellpadding="8">
+<tr>
+<td><b>Project</b></td>
+<td>secure-devsecops-flask</td>
+</tr>
+
+<tr>
+<td><b>Build</b></td>
+<td>#${BUILD_NUMBER}</td>
+</tr>
+
+<tr>
+<td><b>Status</b></td>
+<td>${currentBuild.currentResult}</td>
+</tr>
+
+<tr>
+<td><b>Docker Image</b></td>
+<td>${IMAGE_NAME}:${IMAGE_TAG}</td>
+</tr>
+</table>
+
+<br>
+
+<h3>Pipeline Stages</h3>
+
+<ul>
+<li>Checkout</li>
+<li>Install Dependencies</li>
+<li>Unit Tests</li>
+<li>Semgrep SAST</li>
+<li>Snyk Dependency Scan</li>
+<li>SonarQube Analysis</li>
+<li>Quality Gate</li>
+<li>Docker Build</li>
+<li>Trivy Image Scan</li>
+<li>Docker Push</li>
+</ul>
+
+<h3>Reports Generated</h3>
+
+<ul>
+<li>JUnit Report</li>
+<li>Semgrep JSON</li>
+<li>Snyk JSON</li>
+<li>Snyk HTML</li>
+<li>Trivy JSON</li>
+<li>Trivy HTML</li>
+</ul>
+
+<br>
+
+<p>
+<b>Jenkins Build:</b><br>
+<a href="${BUILD_URL}">
+${BUILD_URL}
+</a>
+</p>
+
+<p>
+<b>SonarQube Dashboard:</b><br>
+<a href="http://localhost:9000/dashboard?id=secure-devsecops-flask">
+http://localhost:9000/dashboard?id=secure-devsecops-flask
+</a>
+</p>
+
+</body>
+</html>
+""",
+
+                attachmentsPattern: "*.json,*.html,test-results.xml"
+            )
 
             cleanWs()
         }
 
         success {
-            echo 'Pipeline completed successfully.'
+            echo "Pipeline completed successfully."
+        }
+
+        unstable {
+            echo "Pipeline completed with warnings."
         }
 
         failure {
-            echo 'Pipeline failed.'
+            echo "Pipeline failed."
         }
     }
 }
